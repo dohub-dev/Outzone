@@ -432,9 +432,9 @@ function subscribe(){
   onSnapshot(doc(fb.db, 'fleet', 'meta'), snap => {
     setLive('on');
     if (!snap.exists()) { curVer = null; setData([], {}); return; }
-    const meta = snap.data();
+    const meta = snap.data({ serverTimestamps: 'estimate' });
     if (meta.uploadedAt && meta.uploadedAt.toDate) meta.uploadedAt = meta.uploadedAt.toDate().toISOString();
-    if (meta.version === curVer) return;
+    if (meta.version === curVer) { if (loaded) { META = { ...META, uploadedAt: meta.uploadedAt }; renderCards(); } return; }
     curVer = meta.version;
     loadVersion(meta).catch(() => toast('โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้า', true));
   }, () => { setLive('off'); toast('เชื่อมต่อฐานข้อมูลไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้า', true); });
@@ -486,6 +486,22 @@ $('file').onchange = e => {
   };
   rd.readAsArrayBuffer(f);
 };
+
+document.querySelectorAll('#quick button').forEach(b => b.onclick = () => setQuick(b.dataset.q));
+document.querySelectorAll('#dateField button').forEach(b => b.onclick = () => {
+  st.field = b.dataset.f;
+  document.querySelectorAll('#dateField button').forEach(x => x.classList.toggle('on', x === b));
+  page = 1; render();
+});
+const onRange = () => {
+  st.from = fromIso($('from').value); st.to = fromIso($('to').value);
+  document.querySelectorAll('#quick button').forEach(b => b.classList.remove('on'));
+  page = 1; render();
+};
+$('from').onchange = onRange; $('to').onchange = onRange;
+$('status').onchange = e => { st.status = e.target.value; page = 1; render(); };
+$('q').oninput = e => { st.q = e.target.value.trim(); page = 1; render(); };
+$('pager').onclick = e => { const p = e.target.dataset.p; if (p) { page = +p; render(); window.scrollTo({ top: $('rows').closest('section').offsetTop - 90 }); } };
 
 // ---------- Start ----------
 setQuick('today');
